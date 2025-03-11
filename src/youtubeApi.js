@@ -1,14 +1,12 @@
 const ytdl = require("ytdl-core")
-const { YoutubeSearchApi } = require("youtube-search-api")
+const YoutubeSearchApi = require("youtube-search-api")
 const fs = require("fs")
 const path = require("path")
-
-const youtube = new YoutubeSearchApi()
 
 async function searchYoutube(query) {
   try {
     console.log("Début de la recherche YouTube pour:", query)
-    const result = await youtube.GetListByKeyword(query, false, 5)
+    const result = await YoutubeSearchApi.GetListByKeyword(query, false, 5)
     console.log("Résultat de la recherche YouTube:", JSON.stringify(result))
     return result.items.map((item) => ({
       title: item.title,
