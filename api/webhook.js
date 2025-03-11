@@ -26,21 +26,27 @@ app.post("/api/webhook", async (req, res) => {
   if (body.object === "page") {
     console.log("Événement de page reçu")
     for (const entry of body.entry) {
-      const webhookEvent = entry.messaging[0]
-      console.log("Événement Webhook reçu:", JSON.stringify(webhookEvent))
+      console.log("Entrée reçue:", JSON.stringify(entry))
+      if (entry.messaging) {
+        const webhookEvent = entry.messaging[0]
+        console.log("Événement Webhook reçu:", JSON.stringify(webhookEvent))
 
-      const senderId = webhookEvent.sender.id
+        const senderId = webhookEvent.sender.id
+        console.log("ID de l'expéditeur:", senderId)
 
-      if (webhookEvent.message || webhookEvent.postback) {
-        console.log("Message ou postback reçu, appel de handleMessage")
-        try {
-          await handleMessage(senderId, webhookEvent.message || webhookEvent.postback)
-          console.log("handleMessage terminé avec succès")
-        } catch (error) {
-          console.error("Erreur lors du traitement du message:", error)
+        if (webhookEvent.message || webhookEvent.postback) {
+          console.log("Message ou postback reçu, appel de handleMessage")
+          try {
+            await handleMessage(senderId, webhookEvent.message || webhookEvent.postback)
+            console.log("handleMessage terminé avec succès")
+          } catch (error) {
+            console.error("Erreur lors du traitement du message:", error)
+          }
+        } else {
+          console.log("Événement non reconnu:", webhookEvent)
         }
       } else {
-        console.log("Événement non reconnu:", webhookEvent)
+        console.log("Aucun événement de messagerie dans cette entrée")
       }
     }
 
