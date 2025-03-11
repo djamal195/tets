@@ -19,8 +19,18 @@ async function handleMessage(senderId, receivedMessage) {
         userStates[senderId] = "mistral"
         await sendTextMessage(senderId, "Mode Mistral réactivé. Comment puis-je vous aider ?")
       } else if (userStates[senderId] === "youtube") {
-        const videos = await searchYoutube(receivedMessage.text)
-        await sendYoutubeResults(senderId, videos)
+        console.log("Recherche YouTube pour:", receivedMessage.text)
+        try {
+          const videos = await searchYoutube(receivedMessage.text)
+          console.log("Résultats de la recherche YouTube:", JSON.stringify(videos))
+          await sendYoutubeResults(senderId, videos)
+        } catch (error) {
+          console.error("Erreur lors de la recherche YouTube:", error)
+          await sendTextMessage(
+            senderId,
+            "Désolé, je n'ai pas pu effectuer la recherche YouTube. Veuillez réessayer plus tard.",
+          )
+        }
       } else {
         console.log("Génération de la réponse Mistral...")
         const response = await generateMistralResponse(receivedMessage.text)
