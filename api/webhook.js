@@ -9,7 +9,6 @@ app.use(bodyParser.json())
 
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`)
-  console.log("Headers:", JSON.stringify(req.headers))
   console.log("Query:", JSON.stringify(req.query))
   console.log("Body:", JSON.stringify(req.body))
   next()
@@ -21,9 +20,7 @@ app.get("/api/webhook", (req, res) => {
 })
 
 app.post("/api/webhook", async (req, res) => {
-  console.log("Début de la requête POST du webhook")
-  console.log("Corps de la requête:", JSON.stringify(req.body))
-
+  console.log("Requête POST reçue du webhook")
   const body = req.body
 
   if (body.object === "page") {
@@ -58,8 +55,6 @@ app.post("/api/webhook", async (req, res) => {
     console.log("Requête non reconnue reçue")
     res.sendStatus(404)
   }
-
-  console.log("Fin de la requête POST du webhook")
 })
 
 app.use((err, req, res, next) => {
