@@ -14,10 +14,10 @@ async function handleMessage(senderId, receivedMessage) {
 
       if (lowerCaseText === "/yt") {
         userStates[senderId] = "youtube"
-        await sendTextMessage(senderId, "Mode YouTube activé. Donnez-moi les mots-clés pour la recherche YouTube.")
+        await sendTextMessage(senderId, "Mode JekleTube activé. Donnez-moi les mots-clés pour la recherche YouTube.")
       } else if (lowerCaseText === "yt/") {
         userStates[senderId] = "mistral"
-        await sendTextMessage(senderId, "Mode Mistral réactivé. Comment puis-je vous aider ?")
+        await sendTextMessage(senderId, "Mode JekleBot réactivé. Comment puis-je vous aider ?")
       } else if (userStates[senderId] === "youtube") {
         console.log("Recherche YouTube pour:", receivedMessage.text)
         try {
