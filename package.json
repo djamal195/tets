@@ -4,7 +4,7 @@
   "description": "Un bot Messenger utilisant l'API Mistral avec fonctionnalités YouTube",
   "main": "api/webhook.py",
   "scripts": {
-    "start": "node api/webhook.js"
+    "start": "node api/webhook.py"
   },
   "dependencies": {
     "express": "^4.17.1",
