@@ -23,6 +23,11 @@ function uploadStream(stream, publicId) {
         public_id: publicId,
         overwrite: true,
         format: "mp4",
+        transformation: [
+          { width: 320, crop: "scale" },
+          { quality: "auto:low" },
+          { duration: 60 }, // Limiter à 60 secondes
+        ],
       },
       (error, result) => {
         if (error) return reject(error)
@@ -48,6 +53,11 @@ function uploadBuffer(buffer, publicId) {
         public_id: publicId,
         overwrite: true,
         format: "mp4",
+        transformation: [
+          { width: 320, crop: "scale" },
+          { quality: "auto:low" },
+          { duration: 60 }, // Limiter à 60 secondes
+        ],
       },
       (error, result) => {
         if (error) return reject(error)
