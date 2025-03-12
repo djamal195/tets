@@ -108,9 +108,20 @@ async function handleWatchVideo(recipientId, videoId) {
     const videoUrl = await downloadYoutubeVideo(videoId)
     console.log("URL de la vidéo Cloudinary:", videoUrl)
 
-    // Envoyer la vidéo via l'URL
-    await sendVideoMessage(recipientId, videoUrl)
-    console.log("Vidéo envoyée avec succès")
+    // Essayer d'abord d'envoyer la vidéo
+    try {
+      await sendVideoMessage(recipientId, videoUrl)
+      console.log("Vidéo envoyée avec succès")
+    } catch (error) {
+      console.error("Erreur lors de l'envoi de la vidéo:", error)
+
+      // Si l'envoi de la vidéo échoue, envoyer un lien
+      await sendTextMessage(
+        recipientId,
+        `Je n'ai pas pu envoyer la vidéo directement. Voici le lien pour la regarder: ${videoUrl}`,
+      )
+      console.log("Lien de la vidéo envoyé avec succès")
+    }
   } catch (error) {
     console.error("Erreur détaillée lors du téléchargement ou de l'envoi de la vidéo:", error)
     await sendTextMessage(recipientId, "Désolé, je n'ai pas pu télécharger la vidéo. Veuillez réessayer plus tard.")
@@ -118,6 +129,8 @@ async function handleWatchVideo(recipientId, videoId) {
 }
 
 async function sendVideoMessage(recipientId, videoUrl) {
+  console.log("Envoi de la vidéo à partir de l'URL:", videoUrl)
+
   const messageData = {
     recipient: { id: recipientId },
     message: {
@@ -131,7 +144,9 @@ async function sendVideoMessage(recipientId, videoUrl) {
     },
   }
 
-  await callSendAPI(messageData)
+  const response = await callSendAPI(messageData)
+  console.log("Réponse de l'envoi de la vidéo:", response)
+  return response
 }
 
 async function sendTextMessage(recipientId, messageText) {
@@ -183,6 +198,7 @@ async function callSendAPI(messageData) {
     }
 
     console.log("Message envoyé avec succès")
+    return body
   } catch (error) {
     console.error("Erreur lors de l'appel à l'API Facebook:", error)
     throw error
