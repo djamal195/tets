@@ -2,6 +2,7 @@ const fetch = require("node-fetch")
 const { MESSENGER_PAGE_ACCESS_TOKEN } = require("./config")
 const { generateMistralResponse } = require("./mistralApi")
 const { searchYoutube, downloadYoutubeVideo } = require("./youtubeApi")
+const fs = require("fs")
 
 const userStates = {}
 
@@ -14,10 +15,10 @@ async function handleMessage(senderId, receivedMessage) {
 
       if (lowerCaseText === "/yt") {
         userStates[senderId] = "youtube"
-        await sendTextMessage(senderId, "Mode JekleTube activé. Donnez-moi les mots-clés pour la recherche YouTube.")
+        await sendTextMessage(senderId, "Mode YouTube activé. Donnez-moi les mots-clés pour la recherche YouTube.")
       } else if (lowerCaseText === "yt/") {
         userStates[senderId] = "mistral"
-        await sendTextMessage(senderId, "Mode JekleBot réactivé. Comment puis-je vous aider ?")
+        await sendTextMessage(senderId, "Mode Mistral réactivé. Comment puis-je vous aider ?")
       } else if (userStates[senderId] === "youtube") {
         console.log("Recherche YouTube pour:", receivedMessage.text)
         try {
@@ -39,9 +40,20 @@ async function handleMessage(senderId, receivedMessage) {
       }
       console.log("Message envoyé avec succès")
     } else if (receivedMessage.postback) {
-      const payload = JSON.parse(receivedMessage.postback.payload)
-      if (payload.action === "watch_video") {
-        await handleWatchVideo(senderId, payload.videoId)
+      console.log("Traitement du postback:", JSON.stringify(receivedMessage.postback))
+      try {
+        const payload = JSON.parse(receivedMessage.postback.payload)
+        console.log("Payload du postback:", JSON.stringify(payload))
+
+        if (payload.action === "watch_video") {
+          console.log("Action watch_video détectée pour videoId:", payload.videoId)
+          await handleWatchVideo(senderId, payload.videoId)
+        } else {
+          console.log("Action de postback non reconnue:", payload.action)
+        }
+      } catch (error) {
+        console.error("Erreur lors du traitement du postback:", error)
+        await sendTextMessage(senderId, "Désolé, je n'ai pas pu traiter votre demande. Veuillez réessayer plus tard.")
       }
     } else {
       console.log("Message reçu sans texte")
@@ -90,30 +102,77 @@ async function sendYoutubeResults(recipientId, videos) {
 
 async function handleWatchVideo(recipientId, videoId) {
   try {
+    console.log("Début du téléchargement de la vidéo pour videoId:", videoId)
     await sendTextMessage(recipientId, "Téléchargement de la vidéo en cours...")
+
     const videoPath = await downloadYoutubeVideo(videoId)
-    await sendVideoMessage(recipientId, videoPath)
+    console.log("Vidéo téléchargée avec succès à:", videoPath)
+
+    // Vérifier si le fichier existe
+    if (fs.existsSync(videoPath)) {
+      console.log("Le fichier vidéo existe, taille:", fs.statSync(videoPath).size)
+    } else {
+      console.error("Le fichier vidéo n'existe pas à l'emplacement:", videoPath)
+      throw new Error("Le fichier vidéo n'existe pas")
+    }
+
+    // Envoyer la vidéo
+    await sendFileAttachment(recipientId, videoPath, "video")
+    console.log("Vidéo envoyée avec succès")
   } catch (error) {
-    console.error("Erreur lors du téléchargement de la vidéo:", error)
+    console.error("Erreur détaillée lors du téléchargement ou de l'envoi de la vidéo:", error)
     await sendTextMessage(recipientId, "Désolé, je n'ai pas pu télécharger la vidéo. Veuillez réessayer plus tard.")
   }
 }
 
-async function sendVideoMessage(recipientId, videoPath) {
-  const messageData = {
-    recipient: { id: recipientId },
-    message: {
-      attachment: {
-        type: "video",
-        payload: {
-          url: videoPath,
-          is_reusable: true,
-        },
-      },
-    },
-  }
+async function sendFileAttachment(recipientId, filePath, type) {
+  console.log(`Début de l'envoi du fichier ${type} depuis:`, filePath)
 
-  await callSendAPI(messageData)
+  // Créer un FormData pour l'upload du fichier
+  const FormData = require("form-data")
+  const form = new FormData()
+
+  form.append("recipient", JSON.stringify({ id: recipientId }))
+  form.append(
+    "message",
+    JSON.stringify({
+      attachment: {
+        type: type,
+        payload: { is_reusable: true },
+      },
+    }),
+  )
+
+  form.append("filedata", fs.createReadStream(filePath), {
+    filename: `file.${type === "video" ? "mp4" : "jpg"}`,
+    contentType: type === "video" ? "video/mp4" : "image/jpeg",
+  })
+
+  const url = `https://graph.facebook.com/v13.0/me/messages?access_token=${MESSENGER_PAGE_ACCESS_TOKEN}`
+
+  try {
+    console.log("Envoi du fichier à l'API Facebook...")
+    const response = await fetch(url, {
+      method: "POST",
+      body: form,
+      headers: form.getHeaders(),
+    })
+
+    console.log("Réponse reçue de l'API Facebook. Status:", response.status)
+
+    const body = await response.json()
+    console.log("Réponse de l'API Facebook:", JSON.stringify(body))
+
+    if (body.error) {
+      console.error("Erreur lors de l'envoi du fichier:", body.error)
+      throw new Error(body.error.message)
+    }
+
+    console.log("Fichier envoyé avec succès")
+  } catch (error) {
+    console.error("Erreur lors de l'envoi du fichier:", error)
+    throw error
+  }
 }
 
 async function sendTextMessage(recipientId, messageText) {
