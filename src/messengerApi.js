@@ -2,7 +2,6 @@ const fetch = require("node-fetch")
 const { MESSENGER_PAGE_ACCESS_TOKEN } = require("./config")
 const { generateMistralResponse } = require("./mistralApi")
 const { searchYoutube, downloadYoutubeVideo } = require("./youtubeApi")
-const fs = require("fs")
 
 const userStates = {}
 
@@ -103,21 +102,14 @@ async function sendYoutubeResults(recipientId, videos) {
 async function handleWatchVideo(recipientId, videoId) {
   try {
     console.log("Début du téléchargement de la vidéo pour videoId:", videoId)
-    await sendTextMessage(recipientId, "Téléchargement de la vidéo en cours...")
+    await sendTextMessage(recipientId, "Téléchargement de la vidéo en cours... Cela peut prendre quelques instants.")
 
-    const videoPath = await downloadYoutubeVideo(videoId)
-    console.log("Vidéo téléchargée avec succès à:", videoPath)
+    // Télécharger la vidéo vers Cloudinary et obtenir l'URL
+    const videoUrl = await downloadYoutubeVideo(videoId)
+    console.log("URL de la vidéo Cloudinary:", videoUrl)
 
-    // Vérifier si le fichier existe
-    if (fs.existsSync(videoPath)) {
-      console.log("Le fichier vidéo existe, taille:", fs.statSync(videoPath).size)
-    } else {
-      console.error("Le fichier vidéo n'existe pas à l'emplacement:", videoPath)
-      throw new Error("Le fichier vidéo n'existe pas")
-    }
-
-    // Envoyer la vidéo
-    await sendFileAttachment(recipientId, videoPath, "video")
+    // Envoyer la vidéo via l'URL
+    await sendVideoMessage(recipientId, videoUrl)
     console.log("Vidéo envoyée avec succès")
   } catch (error) {
     console.error("Erreur détaillée lors du téléchargement ou de l'envoi de la vidéo:", error)
@@ -125,54 +117,21 @@ async function handleWatchVideo(recipientId, videoId) {
   }
 }
 
-async function sendFileAttachment(recipientId, filePath, type) {
-  console.log(`Début de l'envoi du fichier ${type} depuis:`, filePath)
-
-  // Créer un FormData pour l'upload du fichier
-  const FormData = require("form-data")
-  const form = new FormData()
-
-  form.append("recipient", JSON.stringify({ id: recipientId }))
-  form.append(
-    "message",
-    JSON.stringify({
+async function sendVideoMessage(recipientId, videoUrl) {
+  const messageData = {
+    recipient: { id: recipientId },
+    message: {
       attachment: {
-        type: type,
-        payload: { is_reusable: true },
+        type: "video",
+        payload: {
+          url: videoUrl,
+          is_reusable: true,
+        },
       },
-    }),
-  )
-
-  form.append("filedata", fs.createReadStream(filePath), {
-    filename: `file.${type === "video" ? "mp4" : "jpg"}`,
-    contentType: type === "video" ? "video/mp4" : "image/jpeg",
-  })
-
-  const url = `https://graph.facebook.com/v13.0/me/messages?access_token=${MESSENGER_PAGE_ACCESS_TOKEN}`
-
-  try {
-    console.log("Envoi du fichier à l'API Facebook...")
-    const response = await fetch(url, {
-      method: "POST",
-      body: form,
-      headers: form.getHeaders(),
-    })
-
-    console.log("Réponse reçue de l'API Facebook. Status:", response.status)
-
-    const body = await response.json()
-    console.log("Réponse de l'API Facebook:", JSON.stringify(body))
-
-    if (body.error) {
-      console.error("Erreur lors de l'envoi du fichier:", body.error)
-      throw new Error(body.error.message)
-    }
-
-    console.log("Fichier envoyé avec succès")
-  } catch (error) {
-    console.error("Erreur lors de l'envoi du fichier:", error)
-    throw error
+    },
   }
+
+  await callSendAPI(messageData)
 }
 
 async function sendTextMessage(recipientId, messageText) {
