@@ -5,10 +5,17 @@
       "maxDuration": 60
     }
   },
+  "builds": [
+    {
+      "src": "api/webhook.py",
+      "use": "@vercel/python"
+    }
+  ],
   "routes": [
     {
       "src": "/api/webhook",
-      "dest": "api/webhook.js"
+      "dest": "api/webhook.py"
     }
   ]
 }
+
