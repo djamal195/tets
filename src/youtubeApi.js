@@ -1,6 +1,8 @@
 const ytdl = require("ytdl-core")
 const YoutubeSearchApi = require("youtube-search-api")
 const { uploadStream } = require("./cloudinaryService")
+const { connectToDatabase } = require("./database")
+const Video = require("./models/Video")
 
 async function searchYoutube(query) {
   try {
@@ -21,6 +23,19 @@ async function searchYoutube(query) {
 async function downloadYoutubeVideo(videoId) {
   try {
     console.log("Début du téléchargement de la vidéo YouTube:", videoId)
+
+    // Connexion à la base de données
+    await connectToDatabase()
+
+    // Vérifier si la vidéo existe déjà dans la base de données
+    let video = await Video.findOne({ videoId })
+
+    if (video) {
+      console.log("Vidéo trouvée dans la base de données:", video.cloudinaryUrl)
+      return video.cloudinaryUrl
+    }
+
+    // Si la vidéo n'existe pas, la télécharger
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`
 
     // Obtenir les informations sur la vidéo
@@ -34,6 +49,17 @@ async function downloadYoutubeVideo(videoId) {
     console.log("Téléchargement vers Cloudinary...")
     const result = await uploadStream(videoStream, `youtube_${videoId}`)
     console.log("Téléchargement vers Cloudinary terminé:", result.secure_url)
+
+    // Enregistrer la vidéo dans la base de données
+    video = new Video({
+      videoId,
+      title: info.videoDetails.title,
+      cloudinaryUrl: result.secure_url,
+      thumbnail: info.videoDetails.thumbnails[0].url,
+    })
+
+    await video.save()
+    console.log("Vidéo enregistrée dans la base de données")
 
     return result.secure_url
   } catch (error) {
