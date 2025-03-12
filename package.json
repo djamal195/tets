@@ -2,7 +2,7 @@
   "name": "jeklebot",
   "version": "1.0.0",
   "description": "Un bot Messenger utilisant l'API Mistral avec fonctionnalités YouTube",
-  "main": "api/webhook.js",
+  "main": "api/webhook.py",
   "scripts": {
     "start": "node api/webhook.js"
   },
