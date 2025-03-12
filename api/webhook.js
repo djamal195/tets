@@ -9,6 +9,7 @@ app.use(bodyParser.json())
 
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`)
+  console.log("Headers:", JSON.stringify(req.headers))
   console.log("Query:", JSON.stringify(req.query))
   console.log("Body:", JSON.stringify(req.body))
   next()
@@ -20,7 +21,9 @@ app.get("/api/webhook", (req, res) => {
 })
 
 app.post("/api/webhook", async (req, res) => {
-  console.log("Requête POST reçue du webhook")
+  console.log("Début de la requête POST du webhook")
+  console.log("Corps de la requête:", JSON.stringify(req.body))
+
   const body = req.body
 
   if (body.object === "page") {
@@ -34,13 +37,21 @@ app.post("/api/webhook", async (req, res) => {
         const senderId = webhookEvent.sender.id
         console.log("ID de l'expéditeur:", senderId)
 
-        if (webhookEvent.message || webhookEvent.postback) {
-          console.log("Message ou postback reçu, appel de handleMessage")
+        if (webhookEvent.message) {
+          console.log("Message reçu, appel de handleMessage")
           try {
-            await handleMessage(senderId, webhookEvent.message || webhookEvent.postback)
+            await handleMessage(senderId, webhookEvent.message)
             console.log("handleMessage terminé avec succès")
           } catch (error) {
             console.error("Erreur lors du traitement du message:", error)
+          }
+        } else if (webhookEvent.postback) {
+          console.log("Postback reçu:", JSON.stringify(webhookEvent.postback))
+          try {
+            await handleMessage(senderId, { postback: webhookEvent.postback })
+            console.log("handleMessage pour postback terminé avec succès")
+          } catch (error) {
+            console.error("Erreur lors du traitement du postback:", error)
           }
         } else {
           console.log("Événement non reconnu:", webhookEvent)
@@ -55,6 +66,8 @@ app.post("/api/webhook", async (req, res) => {
     console.log("Requête non reconnue reçue")
     res.sendStatus(404)
   }
+
+  console.log("Fin de la requête POST du webhook")
 })
 
 app.use((err, req, res, next) => {
