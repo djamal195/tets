@@ -42,10 +42,17 @@ async function downloadYoutubeVideo(videoId) {
     const info = await ytdl.getInfo(videoId)
     console.log("Informations sur la vidéo obtenues")
 
-    // Créer un stream pour la vidéo avec la qualité la plus basse
-    const videoStream = ytdl(videoUrl, { quality: "lowest" })
+    // Sélectionner le format avec la plus basse qualité
+    const format = ytdl.chooseFormat(info.formats, { quality: "lowest", filter: "audioandvideo" })
+    console.log("Format sélectionné:", format.qualityLabel, format.container)
 
-    // Télécharger le stream vers Cloudinary
+    // Créer un stream pour la vidéo avec la qualité la plus basse
+    const videoStream = ytdl(videoUrl, {
+      quality: "lowest",
+      filter: "audioandvideo",
+    })
+
+    // Télécharger le stream vers Cloudinary avec des options de transformation
     console.log("Téléchargement vers Cloudinary...")
     const result = await uploadStream(videoStream, `youtube_${videoId}`)
     console.log("Téléchargement vers Cloudinary terminé:", result.secure_url)
