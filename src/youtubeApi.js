@@ -1,7 +1,6 @@
 const ytdl = require("ytdl-core")
 const YoutubeSearchApi = require("youtube-search-api")
-const fs = require("fs")
-const path = require("path")
+const { uploadStream } = require("./cloudinaryService")
 
 async function searchYoutube(query) {
   try {
@@ -20,21 +19,27 @@ async function searchYoutube(query) {
 }
 
 async function downloadYoutubeVideo(videoId) {
-  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`
-  const outputPath = path.join("/tmp", `${videoId}.mp4`)
+  try {
+    console.log("Début du téléchargement de la vidéo YouTube:", videoId)
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`
 
-  return new Promise((resolve, reject) => {
-    ytdl(videoUrl, { quality: "lowest" })
-      .pipe(fs.createWriteStream(outputPath))
-      .on("finish", () => {
-        console.log("Téléchargement terminé")
-        resolve(outputPath)
-      })
-      .on("error", (error) => {
-        console.error("Erreur lors du téléchargement:", error)
-        reject(error)
-      })
-  })
+    // Obtenir les informations sur la vidéo
+    const info = await ytdl.getInfo(videoId)
+    console.log("Informations sur la vidéo obtenues")
+
+    // Créer un stream pour la vidéo avec la qualité la plus basse
+    const videoStream = ytdl(videoUrl, { quality: "lowest" })
+
+    // Télécharger le stream vers Cloudinary
+    console.log("Téléchargement vers Cloudinary...")
+    const result = await uploadStream(videoStream, `youtube_${videoId}`)
+    console.log("Téléchargement vers Cloudinary terminé:", result.secure_url)
+
+    return result.secure_url
+  } catch (error) {
+    console.error("Erreur lors du téléchargement de la vidéo:", error)
+    throw error
+  }
 }
 
 module.exports = {
