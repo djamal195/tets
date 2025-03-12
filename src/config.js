@@ -13,6 +13,7 @@ function verifyWebhook(req, res) {
   console.log("Token reçu:", token)
   console.log("Challenge:", challenge)
   console.log("Token attendu:", process.env.MESSENGER_VERIFY_TOKEN)
+  console.log("Page Access Token:", process.env.MESSENGER_PAGE_ACCESS_TOKEN ? "Défini" : "Non défini")
 
   if (mode && token) {
     if (mode === "subscribe" && token === process.env.MESSENGER_VERIFY_TOKEN) {
@@ -34,5 +35,8 @@ module.exports = {
   verifyWebhook,
   MESSENGER_PAGE_ACCESS_TOKEN: process.env.MESSENGER_PAGE_ACCESS_TOKEN,
   MISTRAL_API_KEY: process.env.MISTRAL_API_KEY,
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
 }
 
